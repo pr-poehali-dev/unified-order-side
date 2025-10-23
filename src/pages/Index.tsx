@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Product {
   id: string;
@@ -29,6 +30,24 @@ interface Order {
   items: CartItem[];
   total: number;
   status: 'pending' | 'completed' | 'cancelled';
+}
+
+interface Client {
+  id: string;
+  name: string;
+  priceListId: string;
+}
+
+interface PriceList {
+  id: string;
+  name: string;
+  discount: number;
+}
+
+interface ProductPrice {
+  productId: string;
+  priceListId: string;
+  customPrice?: number;
 }
 
 const sampleProducts: Product[] = [
@@ -100,6 +119,26 @@ const sampleProducts: Product[] = [
   }
 ];
 
+const priceLists: PriceList[] = [
+  { id: 'base', name: 'Базовый', discount: 0 },
+  { id: 'wholesale', name: 'Оптовый', discount: 15 },
+  { id: 'vip', name: 'VIP', discount: 25 },
+  { id: 'partner', name: 'Партнёрский', discount: 30 }
+];
+
+const sampleClients: Client[] = [
+  { id: '1', name: 'ООО "Строймаркет"', priceListId: 'wholesale' },
+  { id: '2', name: 'ИП Иванов', priceListId: 'base' },
+  { id: '3', name: 'ООО "МегаСтрой"', priceListId: 'vip' },
+  { id: '4', name: 'ООО "ПартнёрСтрой"', priceListId: 'partner' }
+];
+
+const customPrices: ProductPrice[] = [
+  { productId: '1', priceListId: 'vip', customPrice: 9.50 },
+  { productId: '2', priceListId: 'vip', customPrice: 4.00 },
+  { productId: '5', priceListId: 'partner', customPrice: 28.00 }
+];
+
 const sampleOrders: Order[] = [
   {
     id: 'ORD-001',
@@ -127,7 +166,27 @@ const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders] = useState<Order[]>(sampleOrders);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState<string>('2');
+  const [clients] = useState<Client[]>(sampleClients);
   const { toast } = useToast();
+
+  const getProductPrice = (product: Product): number => {
+    const client = clients.find(c => c.id === selectedClientId);
+    if (!client) return product.price;
+
+    const customPrice = customPrices.find(
+      cp => cp.productId === product.id && cp.priceListId === client.priceListId
+    );
+    
+    if (customPrice?.customPrice) {
+      return customPrice.customPrice;
+    }
+
+    const priceList = priceLists.find(pl => pl.id === client.priceListId);
+    if (!priceList) return product.price;
+
+    return product.price * (1 - priceList.discount / 100);
+  };
 
   const addToCart = (product: Product, quantity: number = 1) => {
     const existingItem = cart.find(item => item.id === product.id);
@@ -162,7 +221,10 @@ const Index = () => {
     ));
   };
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + getProductPrice(item) * item.quantity, 0);
+  
+  const selectedClient = clients.find(c => c.id === selectedClientId);
+  const selectedPriceList = priceLists.find(pl => pl.id === selectedClient?.priceListId);
 
   const filteredProducts = sampleProducts.filter(product =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -185,6 +247,27 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Icon name="User" size={16} className="text-muted-foreground" />
+                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedPriceList && (
+                  <Badge variant="secondary" className="ml-2">
+                    {selectedPriceList.name}
+                    {selectedPriceList.discount > 0 && ` -${selectedPriceList.discount}%`}
+                  </Badge>
+                )}
+              </div>
               <Badge variant="outline" className="px-3 py-1">
                 <Icon name="ShoppingCart" size={16} className="mr-1" />
                 {cart.length}
@@ -263,7 +346,14 @@ const Index = () => {
                     
                     <div className="flex items-center justify-between pt-2 border-t">
                       <div>
-                        <div className="text-2xl font-bold text-primary">{product.price} ₽</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-2xl font-bold text-primary">{getProductPrice(product).toFixed(2)} ₽</div>
+                          {getProductPrice(product) !== product.price && (
+                            <div className="text-sm text-muted-foreground line-through">
+                              {product.price.toFixed(2)} ₽
+                            </div>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           На складе: {product.stock} {product.unit}
                         </div>
@@ -333,10 +423,10 @@ const Index = () => {
                             
                             <div className="text-right min-w-[100px]">
                               <div className="text-xl font-bold text-primary">
-                                {(item.price * item.quantity).toFixed(2)} ₽
+                                {(getProductPrice(item) * item.quantity).toFixed(2)} ₽
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {item.price} ₽ × {item.quantity}
+                                {getProductPrice(item).toFixed(2)} ₽ × {item.quantity}
                               </div>
                             </div>
                             
@@ -418,7 +508,67 @@ const Index = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
+                    <Icon name="Users" size={20} />
+                    Клиенты и прайс-листы
+                  </CardTitle>
+                  <CardDescription>Управление ценами для клиентов</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {clients.map(client => {
+                      const priceList = priceLists.find(pl => pl.id === client.priceListId);
+                      return (
+                        <div key={client.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                          <div>
+                            <p className="font-medium">{client.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {priceList?.name}
+                              {priceList && priceList.discount > 0 && ` • Скидка ${priceList.discount}%`}
+                            </p>
+                          </div>
+                          <Badge variant={client.id === selectedClientId ? "default" : "outline"}>
+                            {client.id === selectedClientId ? 'Активен' : 'Выбрать'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
                     <Icon name="Tag" size={20} />
+                    Прайс-листы
+                  </CardTitle>
+                  <CardDescription>Доступные прайс-листы системы</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {priceLists.map(priceList => (
+                      <div key={priceList.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div>
+                          <p className="font-medium">{priceList.name}</p>
+                          {priceList.discount > 0 && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Скидка {priceList.discount}% от базовой цены
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="outline">
+                          {clients.filter(c => c.priceListId === priceList.id).length} клиентов
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Icon name="DollarSign" size={20} />
                     Категории
                   </CardTitle>
                   <CardDescription>Справочник категорий товаров</CardDescription>
