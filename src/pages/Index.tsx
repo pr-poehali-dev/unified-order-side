@@ -15,6 +15,7 @@ interface Product {
   price: number;
   unit: string;
   stock: number;
+  image?: string;
   characteristics: Record<string, string>;
 }
 
@@ -39,6 +40,7 @@ const sampleProducts: Product[] = [
     price: 12.50,
     unit: 'шт',
     stock: 1500,
+    image: 'https://cdn.poehali.dev/projects/c0e866ce-efcd-42df-8db1-63e0ee2fafc0/files/bc764a00-44b0-400b-bd9c-72082ed23b7b.jpg',
     characteristics: { 'Материал': 'Сталь', 'Покрытие': 'Цинк' }
   },
   {
@@ -49,6 +51,7 @@ const sampleProducts: Product[] = [
     price: 5.30,
     unit: 'шт',
     stock: 2000,
+    image: 'https://cdn.poehali.dev/projects/c0e866ce-efcd-42df-8db1-63e0ee2fafc0/files/78761fe7-95c4-4952-974e-207cfed05c7d.jpg',
     characteristics: { 'Материал': 'Сталь', 'Класс': '8' }
   },
   {
@@ -59,6 +62,7 @@ const sampleProducts: Product[] = [
     price: 2.10,
     unit: 'шт',
     stock: 3000,
+    image: 'https://cdn.poehali.dev/projects/c0e866ce-efcd-42df-8db1-63e0ee2fafc0/files/e0dd137a-5068-4f4e-b828-cdce0a100695.jpg',
     characteristics: { 'Материал': 'Сталь', 'Толщина': '2мм' }
   },
   {
@@ -69,6 +73,7 @@ const sampleProducts: Product[] = [
     price: 8.90,
     unit: 'шт',
     stock: 800,
+    image: 'https://cdn.poehali.dev/projects/c0e866ce-efcd-42df-8db1-63e0ee2fafc0/files/bc764a00-44b0-400b-bd9c-72082ed23b7b.jpg',
     characteristics: { 'Материал': 'Нерж. сталь', 'Тип': 'DIN 912' }
   },
   {
@@ -79,6 +84,7 @@ const sampleProducts: Product[] = [
     price: 45.00,
     unit: 'шт',
     stock: 500,
+    image: 'https://cdn.poehali.dev/projects/c0e866ce-efcd-42df-8db1-63e0ee2fafc0/files/78761fe7-95c4-4952-974e-207cfed05c7d.jpg',
     characteristics: { 'Материал': 'Сталь', 'Нагрузка': '500кг' }
   },
   {
@@ -89,6 +95,7 @@ const sampleProducts: Product[] = [
     price: 3.20,
     unit: 'шт',
     stock: 5000,
+    image: 'https://cdn.poehali.dev/projects/c0e866ce-efcd-42df-8db1-63e0ee2fafc0/files/e0dd137a-5068-4f4e-b828-cdce0a100695.jpg',
     characteristics: { 'Материал': 'Сталь', 'Покрытие': 'Фосфат' }
   }
 ];
@@ -223,7 +230,16 @@ const Index = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredProducts.map((product) => (
-                <Card key={product.id} className="hover:shadow-md transition-shadow">
+                <Card key={product.id} className="hover:shadow-md transition-shadow overflow-hidden">
+                  {product.image && (
+                    <div className="aspect-square bg-muted/30 overflow-hidden">
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
